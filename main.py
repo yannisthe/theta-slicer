@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 import json 
 from imports.TS.theta_slicer import theta_slicer
-from imports.MCIoTN.max_cut import max_cut_connected_all
+from imports.MCIoTN.mciotn import mciotn
 #------------------------------------------------------------------------------------------
 # --- Kernighan–Lin Bisection
 def kernighan_lin_cut(G):
@@ -265,7 +265,7 @@ def run_experiments(runNo, Nodes, R, BRs, KL=True, MC=True, TS=True, TStheta3=Tr
             BR1 = BRs[0]
             BR2 = BRs[1]
             start_time = time.time()
-            partitions_maxcut, weight_maxcut = max_cut_connected_all(G, BR1, BR2, enforce_even=True)
+            partitions_maxcut, weight_maxcut = mciotn(G, BR1, BR2, enforce_even=True)
             exec_time = time.time() - start_time
             if partitions_maxcut:
                 p1, p2 = partitions_maxcut[0]
