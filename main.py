@@ -1,3 +1,27 @@
+# ----------------------------------------
+# File: main.py
+# Author: Ioannis Theodorou
+# Created: April 10, 2025
+# Last Modified: July 15, 2025
+# Description: To run experiments between Kernighan-Lin, MCIoTN, and Theta-Slicer
+# Version: 1.0
+#
+# Copyright (C) 2025 Ioannis Theodorou
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
+# ------------------------------------------------------------
+
 from collections import defaultdict
 import networkx as nx
 import time
@@ -7,7 +31,7 @@ import pandas as pd
 from datetime import datetime
 import os
 import json 
-from imports.TS.theta_slicer import theta_slicer
+from imports.THETASLICER.theta_slicer import theta_slicer
 from imports.MCIoTN.mciotn import mciotn
 #------------------------------------------------------------------------------------------
 # --- Kernighan–Lin Bisection
@@ -15,131 +39,6 @@ def kernighan_lin_cut(G):
     part1, part2 = nx.algorithms.community.kernighan_lin_bisection(G)
     return (part1, part2)
 
-#------------------------------------------------------------------------------------------
-# # --- MCIoTN
-# def max_cut_connected_all(G, BR1=None, BR2=None, enforce_even=False):
-#     nodes = sorted(G.nodes())
-#     n = len(nodes)
-#     max_cut_weight = -1
-#     best_partitions = []
-
-#     for i in range(1, 2 ** (n - 1)):
-#         part1 = [nodes[j] for j in range(n) if (i >> j) & 1]
-#         part2 = [node for node in nodes if node not in part1]
-
-#         if not part1 or not part2:
-#             continue
-
-#         if (BR1 != BR2) and (BR1 not in part1 or BR2 not in part2):
-#             continue
-
-#         if nx.is_connected(G.subgraph(part1)) and nx.is_connected(G.subgraph(part2)):
-#             cut_weight = sum(1 for u in part1 for v in G.neighbors(u) if v in part2)
-#             cut_weight = cut_weight // 2  # count each edge only once
-
-#             if cut_weight > max_cut_weight:
-#                 max_cut_weight = cut_weight
-#                 best_partitions = [(part1, part2)]
-#             elif cut_weight == max_cut_weight:
-#                 best_partitions.append((part1, part2))
-
-#     if enforce_even and best_partitions:
-#         min_diff = min(abs(len(p1) - len(p2)) for p1, p2 in best_partitions)
-#         best_partitions = [p for p in best_partitions if abs(len(p[0]) - len(p[1])) == min_diff]
-
-#     return best_partitions, max_cut_weight
-
-# #------------------------------------------------------------------------------------------
-# # --- THETA-SLICER - θ CUTS
-# def is_valid_multi_partition(G, partitions, BRs):
-#     for i, part in enumerate(partitions):
-#         if BRs[i] not in part:
-#             return False
-#         if not nx.is_connected(G.subgraph(part)):
-#             return False
-#     return True
-
-# def cut_weight_multi(G, partitions):
-#     cut = 0
-#     for i in range(len(partitions)):
-#         for j in range(i + 1, len(partitions)):
-#             cut += sum(1 for u in partitions[i] for v in G.neighbors(u) if v in partitions[j])
-#     return cut // 2  # count each edge only once
-
-# def theta_slicer(G, BRs, enforce_even=False, max_iter=500):
-#     k = len(BRs)
-#     nodes = set(G.nodes())
-#     partitions = [{br} for br in BRs]
-#     assigned = set(BRs)
-#     unassigned = list(nodes - assigned)
-
-#     for node in unassigned:
-#         random.choice(partitions).add(node)
-
-#     for _ in range(10):
-#         if is_valid_multi_partition(G, partitions, BRs):
-#             break
-#         part_idx = random.randint(0, k-1)
-#         non_br_nodes = [n for n in partitions[part_idx] if n not in BRs]
-#         if non_br_nodes:
-#             node = random.choice(non_br_nodes)
-#             partitions[part_idx].remove(node)
-#             new_idx = random.choice([i for i in range(k) if i != part_idx])
-#             partitions[new_idx].add(node)
-
-#     current_cut = cut_weight_multi(G, partitions)
-
-#     for _ in range(max_iter):
-#         improvement = False
-#         all_nodes = list(nodes - set(BRs))
-#         random.shuffle(all_nodes)
-
-#         for node in all_nodes:
-#             current_idx = next(i for i, part in enumerate(partitions) if node in part)
-#             for new_idx in range(k):
-#                 if new_idx == current_idx:
-#                     continue
-
-#                 new_partitions = [set(part) for part in partitions]
-#                 new_partitions[current_idx].remove(node)
-#                 new_partitions[new_idx].add(node)
-
-#                 if not is_valid_multi_partition(G, new_partitions, BRs):
-#                     continue
-
-#                 new_cut = cut_weight_multi(G, new_partitions)
-#                 if new_cut > current_cut:
-#                     partitions = new_partitions
-#                     current_cut = new_cut
-#                     improvement = True
-#                     break
-#             if improvement:
-#                 break
-#         if not improvement:
-#             break
-
-#     if enforce_even:
-#         all_nodes = list(nodes - set(BRs))
-#         sizes = [len(p) for p in partitions]
-#         target_size = sum(sizes) // k
-#         for _ in range(50):
-#             max_idx = max(range(k), key=lambda i: len(partitions[i]))
-#             min_idx = min(range(k), key=lambda i: len(partitions[i]))
-#             if len(partitions[max_idx]) - len(partitions[min_idx]) <= 1:
-#                 break
-#             movable = [n for n in partitions[max_idx] if n not in BRs]
-#             if not movable:
-#                 break
-#             node = random.choice(movable)
-#             partitions[max_idx].remove(node)
-#             partitions[min_idx].add(node)
-#             if not is_valid_multi_partition(G, partitions, BRs):
-#                 partitions[min_idx].remove(node)
-#                 partitions[max_idx].add(node)
-
-#     return [list(p) for p in partitions], current_cut
-
-#------------------------------------------------------------------------------------------
 # --- Neighbor Decrease Calculation
 def calc_neighbor_decrease_percentage(G, partitions):
     partition_labels = {}
@@ -231,7 +130,7 @@ def save_result(filename, run_no, G, R, algorithm_code, exec_time, edge_cuts,
 
 #------------------------------------------------------------------------------------------
 # --- Main Experiment Loop
-def run_experiments(runNo, Nodes, R, BRs, KL=True, MC=True, TS=True, TStheta3=True, TStheta5=True):
+def run_experiments(runNo, Nodes, R, BRs, KL=False, MC=False, TS=False, TStheta3=False, TStheta5=False):
 #    runNo = 5
 #    Nodes = 16
 #    R = 0.5
@@ -244,7 +143,7 @@ def run_experiments(runNo, Nodes, R, BRs, KL=True, MC=True, TS=True, TStheta3=Tr
 
     for run in range(runNo):
         print(f"\n========== Run {run + 1} ==========")
-        G = nx.random_geometric_graph(Nodes, R)
+        G = nx.random_geometric_graph(Nodes, R) # Create Geometric Graph
         for u, v in G.edges():
             G[u][v]['weight'] = 1
 
@@ -290,7 +189,7 @@ def run_experiments(runNo, Nodes, R, BRs, KL=True, MC=True, TS=True, TStheta3=Tr
                 print_result_to_screen(run+1, G, R, "TS", exec_time, edge_cuts, overall_dec, c1, c2, p1, p2, pernode_dec, neighbour_decrease, num_of_neighbour_decrease)
                 save_result(filename, run+1, G, R, "TS", exec_time, edge_cuts, overall_dec, c1, c2, p1, p2, pernode_dec, neighbour_decrease, num_of_neighbour_decrease)
         
-        if TStheta3:
+        if TStheta3 and len(BRs) == 3:
             BR1 = BRs[0]
             BR2 = BRs[1]
             BR3 = BRs[2]
@@ -337,7 +236,7 @@ def run_experiments(runNo, Nodes, R, BRs, KL=True, MC=True, TS=True, TStheta3=Tr
                     line += f"{json.dumps(dict(G.degree()))};{G.number_of_edges()}\n"
                     f.write(line)
 
-        if TStheta5:
+        if TStheta5 and len(BRs) == 5:
             start_time = time.time()
             partitions_ts, cut_ts = theta_slicer(G, BRs, enforce_even=True)
             exec_time = time.time() - start_time
@@ -382,97 +281,32 @@ def run_experiments(runNo, Nodes, R, BRs, KL=True, MC=True, TS=True, TStheta3=Tr
                     f.write(line)
 
         f.close()
-num_nodes = 500
-radius = 0.5  # For random geometric graph
-num_graphs = 3
-num_partitions = 4  # Can be adjusted for dynamic slicing
-
-# Output directory and filename timestamp
-timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-output_dir = "dynamic_output"
-os.makedirs(output_dir, exist_ok=True)
-
-# Store output data
-output_data = []
-
-for i in range(num_graphs):
-    G = nx.random_geometric_graph(num_nodes, radius)
-
-    if not nx.is_connected(G):
-        largest_cc = max(nx.connected_components(G), key=len)
-        G = G.subgraph(largest_cc).copy()
-
-    nodes = list(G.nodes())
-    random.shuffle(nodes)
-
-    partitions = [nodes[i::num_partitions] for i in range(num_partitions)]
-    subgraphs = [G.subgraph(part).copy() for part in partitions]
-    connectivity = [nx.is_connected(sg) for sg in subgraphs]
-    degrees = [dict(sg.degree()) for sg in subgraphs]
-    edge_counts = [sg.number_of_edges() for sg in subgraphs]
-
-    row = {
-        "GraphEdgeCount": G.number_of_edges(),
-        "TotalNodes": G.number_of_nodes(),
-        "MaxEdges": int((G.number_of_nodes() * (G.number_of_nodes()-1)) / 2)
-    }
-
-# Ensure consistent columns even if some partitions are missing
-for idx in range(1, num_partitions + 1):
-    if idx <= len(partitions):
-        part = partitions[idx - 1]
-        conn = connectivity[idx - 1]
-        deg = degrees[idx - 1]
-        ec = edge_counts[idx - 1]
-
-        row[f"Partition{idx}Connected"] = str(conn)
-        row[f"Partition{idx}"] = json.dumps(sorted(part))
-        row[f"Partition{idx}Size"] = len(part)
-        row[f"Partition{idx}Degrees"] = json.dumps(deg)
-        row[f"Partition{idx}EdgeCount"] = ec
-    else:
-        row[f"Partition{idx}Connected"] = ""
-        row[f"Partition{idx}"] = ""
-        row[f"Partition{idx}Size"] = ""
-        row[f"Partition{idx}Degrees"] = ""
-        row[f"Partition{idx}EdgeCount"] = ""
 
 
-    output_data.append(row)
-
-# Create DataFrame
-df = pd.DataFrame(output_data)
-
-# Save to Excel
-filename = f"ExpThetaSlicer_{num_nodes}_{radius}_{timestamp}.xlsx"
-filepath = os.path.join(output_dir, filename)
-df.to_excel(filepath, index=False)
-
-print(f"Output saved to {filepath}")
-
+# MAIN
 if __name__ == "__main__":
-  #  run_experiments(15, 10, 0.5, 1, 3)
-  #  run_experiments(15, 10, 0.7, 1, 3)
-    #run_experiments(15, 10, 0.9, 1, 3)
+    run_experiments(15, 20, 0.7, [1, 3], KL=True, MC=True, TS=True)
 
-    #run_experiments(15, 15, 0.5, 1, 3)
-    #run_experiments(15, 15, 0.7, 1, 3)
-   # run_experiments(15, 15, 0.9, 1, 3)
+    #run_experiments(15, 10, 0.5, [1, 3], KL=True, MC=True, TS=True)
+    #run_experiments(15, 10, 0.7, [1, 3], KL=True, MC=True, TS=True)
+    #run_experiments(15, 10, 0.9, [1, 3], KL=True, MC=True, TS=True)
 
-  #  run_experiments(15, 20, 0.5, 1, 3)
- #   run_experiments(15, 20, 0.7, 1, 3)
-#    run_experiments(15, 20, 0.9, 1, 3)
+    #run_experiments(15, 15, 0.5, [1, 3], KL=True, MC=True, TS=True)
+    #run_experiments(15, 15, 0.7, [1, 3], KL=True, MC=True, TS=True)
+    #run_experiments(15, 15, 0.9, [1, 3], KL=True, MC=True, TS=True)
 
- #   run_experiments(15, 25, 0.5, 1, 3)
- #   run_experiments(15, 25, 0.7, 1, 3)
- #   run_experiments(15, 25, 0.9, 1, 3)
+    #run_experiments(15, 20, 0.5, [1, 3], KL=True, MC=True, TS=True)
+    #run_experiments(15, 20, 0.7, [1, 3], KL=True, MC=True, TS=True)
+    #run_experiments(15, 20, 0.9, [1, 3], KL=True, MC=True, TS=True)
 
-   # run_experiments(15, 500, 0.5, 1, 3, KL=True, MC=False, TS=True)
-   # run_experiments(15, 500, 0.7, 1, 3, KL=True, MC=False, TS=True)
-   #run_experiments(15, 500, 0.9, 1, 3, KL=True, MC=False, TS=True)
+    #run_experiments(15, 25, 0.5, [1, 3], KL=True, MC=True, TS=True)
+    #run_experiments(15, 25, 0.7, [1, 3], KL=True, MC=True, TS=True)
+    #run_experiments(15, 25, 0.9, [1, 3], KL=True, MC=True, TS=True)
 
-    run_experiments(2, 1000, 0.5, [1,3,6,12,200], KL=True, MC=False, TS=True, TStheta3=True, TStheta5=True)
-    #run_experiments(2, 1000, 0.7, [1,3,6,12,200], KL=True, MC=False, TS=True, TStheta3=True, TStheta5=True)
-    #run_experiments(2, 1000, 0.9, [1,3,6,12,200], KL=True, MC=False, TS=True, TStheta3=True, TStheta5=True)
-    #run_experiments(15, 1000, 0.7, 1, 3, KL=True, MC=False, TS=True)
-    #run_experiments(15, 1000, 0.9, 1, 3, KL=True, MC=False, TS=True)
+    #run_experiments(15, 500, 0.5, [1, 3], KL=True, MC=False, TS=True)
+    #run_experiments(15, 500, 0.7, [1, 3], KL=True, MC=False, TS=True)
+    #run_experiments(15, 500, 0.9, [1, 3], KL=True, MC=False, TS=True)
+
+    #run_experiments(15, 1000, 0.5, [1,3,6,12,200], KL=True, MC=False, TS=True, TStheta3=True, TStheta5=True)
+    #run_experiments(15, 1000, 0.7, [1,3,6,12,200], KL=True, MC=False, TS=True, TStheta3=True, TStheta5=True)
+    #run_experiments(15, 1000, 0.9, [1,3,6,12,200], KL=True, MC=False, TS=True, TStheta3=True, TStheta5=True)

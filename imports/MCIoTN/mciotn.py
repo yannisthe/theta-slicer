@@ -1,7 +1,36 @@
+# ----------------------------------------
+# File: mciotn.py
+# Author: Ioannis Theodorou
+# Created: April 11, 2025
+# Last Modified: July 15, 2025
+# Description: A brute-force solution for the graph theory Max-Cut problem, adapted for IoTNs. 
+# Ensures that designated border routers are assigned to a bipartition algorithm and only accept cuts
+# that yield internally connected subgraphs, guaranteeing operational validity.
+# An optional balancing mechanism enforces near-equal partition sizes to support fair
+# load distribution in UDIoT scenarios.
+# Version: 1.0
+#
+# Copyright (C) 2025 Ioannis Theodorou
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
+# ------------------------------------------------------------
+
+
 import networkx as nx
 
 # --- MCIoTN
-def mciotn(G, BR1=None, BR2=None, enforce_even=False):
+def mciotn(G, BR1=None, BR2=None, enforce_even=False): # G - Network graph, BR1 BR2 - Border Routers 1 & 2, enforce_even - Ensures partitions are even where possible
     nodes = sorted(G.nodes())
     n = len(nodes)
     max_cut_weight = -1
