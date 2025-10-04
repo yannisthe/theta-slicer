@@ -102,7 +102,8 @@ def theta_slicer(G, BRs, enforce_even=False, max_iter=500): # G - Network graph,
         all_nodes = list(nodes - set(BRs))
         sizes = [len(p) for p in partitions]
         target_size = sum(sizes) // theta
-        for _ in range(50):
+        max_loops = len(G.nodes()) * theta
+        for _ in range(max_loops):
             max_idx = max(range(theta), key=lambda i: len(partitions[i]))
             min_idx = min(range(theta), key=lambda i: len(partitions[i]))
             if len(partitions[max_idx]) - len(partitions[min_idx]) <= 1:
@@ -116,5 +117,15 @@ def theta_slicer(G, BRs, enforce_even=False, max_iter=500): # G - Network graph,
             if not is_valid_multi_partition(G, partitions, BRs):
                 partitions[min_idx].remove(node)
                 partitions[max_idx].add(node)
+                continue
+            
+            new_cut = cut_weight_multi(G, partitions)  # compute cut after the move
 
+            # accept only if new_cut >= current_cut; otherwise revert
+            if new_cut < current_cut:
+                partitions[min_idx].remove(node)
+                partitions[max_idx].add(node) 
+                continue # don't update current_cut; try another move / iteration
+            else:
+                current_cut = new_cut  # move accepted; continue balancing (may further improve)
     return [list(p) for p in partitions], current_cut
